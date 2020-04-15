@@ -5,6 +5,7 @@ import react.RBuilder
 import react.RComponent
 import react.RProps
 import react.RState
+import react.dom.a
 import react.dom.br
 import react.dom.code
 import react.dom.div
@@ -23,7 +24,13 @@ class App : RComponent<RProps, AppState>() {
     div("container") {
       br {  }
       h1 { +"Pretty Proto" }
-      br {  }
+
+      div("mb-3") {
+        +"A utility to format the toString() output of "
+        a("https://square.github.io/wire/") { +"Wire" }
+        +" generated Protos."
+      }
+
       rawTextInput { parsedNode ->
         setState {
           node = parsedNode
@@ -36,6 +43,11 @@ class App : RComponent<RProps, AppState>() {
             +it.toPrettyString()
           }
         }
+      }
+      div {
+        +"© 2019 Adam Erb. Open source on "
+        a("https://github.com/aerb/pretty-proto") { +"Github" }
+        +"."
       }
     }
   }
