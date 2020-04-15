@@ -1,7 +1,6 @@
 package ca.aerb.prettyproto
 
-import ca.aerb.prettyproto.parser.Node.Object
-import ca.aerb.prettyproto.parser.Node.Single
+import ca.aerb.prettyproto.parser.Node
 import ca.aerb.prettyproto.parser.ProtoParser
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -10,7 +9,7 @@ class ParserTest {
     @Test
     fun justAnEmptyObject() {
         assertEquals(
-            expected = Object(
+            expected = Node.Object(
                 name = "A",
                 fields = emptyMap()
             ),
@@ -21,9 +20,9 @@ class ParserTest {
     @Test
     fun objectWithField() {
         assertEquals(
-            expected = Object(
+            expected = Node.Object(
                 name = "A",
-                fields = mapOf("b" to Single("wat"))
+                fields = mapOf("b" to Node.Single("wat"))
             ),
             actual = ProtoParser("A{b=wat}").parseRoot()
         )
@@ -32,9 +31,9 @@ class ParserTest {
     @Test
     fun objectWithMultipleFields() {
         assertEquals(
-            expected = Object(
+            expected = Node.Object(
                 name = "A",
-                fields = mapOf("b" to Single("wat"), "c" to Single("test"))
+                fields = mapOf("b" to Node.Single("wat"), "c" to Node.Single("test"))
             ),
             actual = ProtoParser("A{b=wat, c=test}").parseRoot()
         )
@@ -43,12 +42,12 @@ class ParserTest {
     @Test
     fun objectWithNestedObject() {
         assertEquals(
-            expected = Object(
+            expected = Node.Object(
                 name = "A",
                 fields = mapOf(
-                    "b" to Object(
+                    "b" to Node.Object(
                         name = "B",
-                        fields = mapOf("c" to Single("c"))
+                        fields = mapOf("c" to Node.Single("c"))
                     )
                 )
             ),
@@ -59,11 +58,27 @@ class ParserTest {
     @Test
     fun escapedCharacters() {
         assertEquals(
-            expected = Object(
+            expected = Node.Object(
                 name = "A",
-                fields = mapOf("b" to Single(""",{}[]\"""))
+                fields = mapOf("b" to Node.Single(""",{}[]\"""))
             ),
             actual = ProtoParser("""A{b=\,\{\}\[\]\\}""").parseRoot()
+        )
+    }
+
+    @Test
+    fun nestedArrays() {
+        assertEquals(
+            expected = Node.Object(
+                name = "NestedArray",
+                fields = mapOf(
+                    "my_list" to nodeArrayOf(
+                        nodeArrayOf(Node.Single("a")),
+                        nodeArrayOf(nodeArrayOf(Node.Single("b")))
+                    )
+                )
+            ),
+            actual = ProtoParser("NestedArray{my_list=[[a], [[b]]]}").parseRoot()
         )
     }
 
@@ -75,4 +90,6 @@ class ParserTest {
             "2019 Statement, key=2019110501, url=https://test.biz/login?token=:~), type=STONKS, " +
             "document_date=1572566400000, email_forwardable=false}]}").parseRoot()
     }
+
+    private fun nodeArrayOf(vararg node: Node) = Node.Array(listOf(*node))
 }

@@ -32,7 +32,7 @@ class ProtoTokenizer(private val text: String) {
 
   fun readFieldContent(): FieldContent {
     val sb = StringBuilder()
-    if (peek() == '[') {
+    if (peek() == '[' || (peek() == ' ' && peek(1) == '[')) {
       return FieldContent(UpcomingHint.ArrayStart)
     }
 
@@ -48,6 +48,10 @@ class ProtoTokenizer(private val text: String) {
           hint = UpcomingHint.FieldEnd
         )
         '}' -> FieldContent(
+          value = sb.toString(),
+          hint = UpcomingHint.ObjectEnd
+        )
+        ']' -> FieldContent(
           value = sb.toString(),
           hint = UpcomingHint.ObjectEnd
         )
@@ -95,15 +99,16 @@ class ProtoTokenizer(private val text: String) {
     enum class UpcomingHint {
       ObjectStart,
       ObjectEnd,
-      FieldEnd,
-      ArrayStart
+      ArrayStart,
+      ArrayEnd,
+      FieldEnd
     }
   }
 
   sealed class Token(private val debugText: String? = null) {
     data class Symbol(val value: String) : Token()
-    object OpenObject : Token("OpenBrace")
-    object CloseObject : Token("CloseBrace")
+    object OpenObject : Token("OpenObject")
+    object CloseObject : Token("CloseObject")
     object Assign : Token("Assign")
     object Comma: Token("Comma")
     object EOF: Token("EOF")

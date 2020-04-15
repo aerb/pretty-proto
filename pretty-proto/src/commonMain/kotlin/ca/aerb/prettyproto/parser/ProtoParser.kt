@@ -34,7 +34,8 @@ class ProtoParser(text: String) {
     val content = tokenizer.readFieldContent()
     return when (content.hint) {
       FieldContent.UpcomingHint.FieldEnd,
-      FieldContent.UpcomingHint.ObjectEnd -> Single(content.value)
+      FieldContent.UpcomingHint.ObjectEnd,
+      FieldContent.UpcomingHint.ArrayEnd -> Single(content.value)
       FieldContent.UpcomingHint.ObjectStart -> parseObject(content.value)
       FieldContent.UpcomingHint.ArrayStart -> parseArray()
     }
