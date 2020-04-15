@@ -34,14 +34,12 @@ class RawTextInput(
 ) : RComponent<RawTextInputProps, RawTextInputState>(props) {
 
   override fun RawTextInputState.init(props: RawTextInputProps) {
-    rawText = decodeURIComponent(window.location.search.trimStart('?'))
-    try {
-      if (rawText.isNotEmpty()) {
-        props.onParsed(ProtoParser(rawText).parseRoot())
-      }
-    } catch (e: Exception) {
-      println("Failed to parse with $e")
-    }
+    rawText = "MyExampleProto{documents=[Document{name=Sandy Statement, key=0, " +
+        "url=https://test.biz&file_key=sandy.png, type=STONKS, document_date=1970, " +
+        "email_forwardable=false}, Document{name=Randy Statement, key=42, " +
+        "url=https://test.biz/login?token=:~), type=STONKS, document_date=1971, " +
+        "email_forwardable=false}]}"
+    props.onParsed(ProtoParser(rawText).parseRoot())
   }
 
   override fun RBuilder.render() {
@@ -65,8 +63,6 @@ class RawTextInput(
     setState {
       rawText = text
     }
-    val encoded = encodeURIComponent(text)
-    window.history.replaceState(encoded, document.title, "?${encoded}")
     props.onParsed(ProtoParser(text).parseRoot())
   }
 }
