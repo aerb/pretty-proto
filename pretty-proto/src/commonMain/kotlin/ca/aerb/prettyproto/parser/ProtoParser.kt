@@ -2,28 +2,46 @@ package ca.aerb.prettyproto.parser
 
 import ca.aerb.prettyproto.parser.Node.Array
 import ca.aerb.prettyproto.parser.Node.Single
-import ca.aerb.prettyproto.parser.ProtoTokenizer.FieldContent
+import ca.aerb.prettyproto.parser.ProtoTokenizer.FieldContent.UpcomingHint
 import ca.aerb.prettyproto.parser.ProtoTokenizer.Token
 
-class ProtoParser(text: String) {
+class ProtoParser(private val text: String) {
 
   private val tokenizer = ProtoTokenizer(text)
 
-  fun parseRoot(): Node {
-    val topLevel = expectNext<Token.Symbol>()
-    return parseObject(topLevel.value)
+  fun parseRoot(): ParseResult {
+    return try {
+      val topLevel = expectNext<Token.Symbol>()
+      ParseResult.Success(parseObject(topLevel.value))
+    } catch (e: UnexpectedToken) {
+      ParseResult.Partial(e)
+    }
   }
 
   private inline fun <reified T : Token> expectNext(): T {
     val next = tokenizer.next()
     if (next !is T) {
-      throw IllegalStateException("Expected token ${T::class} but got $next")
+      throwUnexpected(next)
     }
     return next
   }
 
-  private fun unexpectedToken(token: Token): Nothing =
-    throw IllegalStateException("Unexpected token $token")
+  private fun throwUnexpected(token: Token, currentNode: Node? = null): Nothing {
+    val curr = tokenizer.index
+    val range = 10
+    val startIndex = (curr - range).coerceAtLeast(0)
+    val endIndex = (curr + range).coerceAtMost(text.length)
+    throw UnexpectedToken(
+      unexpected = token,
+      innerFailed = currentNode,
+      parseContext = UnexpectedToken.ParseContext(
+        text = text.substring(startIndex, endIndex),
+        localIndex = curr - startIndex,
+        absoluteIndex = curr
+      )
+    )
+  }
+
 
   private fun parseField(): Node {
     expectNext<Token.Assign>()
@@ -33,27 +51,36 @@ class ProtoParser(text: String) {
   private fun parseValue(): Node {
     val content = tokenizer.readFieldContent()
     return when (content.hint) {
-      FieldContent.UpcomingHint.FieldEnd,
-      FieldContent.UpcomingHint.ObjectEnd,
-      FieldContent.UpcomingHint.ArrayEnd -> Single(content.value)
-      FieldContent.UpcomingHint.ObjectStart -> parseObject(content.value)
-      FieldContent.UpcomingHint.ArrayStart -> parseArray()
+      UpcomingHint.EndOfContent -> Single(content.value)
+      UpcomingHint.ObjectStart -> parseObject(content.value)
+      UpcomingHint.ArrayStart -> parseArray()
     }
   }
 
   private fun parseArray(): Array {
     expectNext<Token.OpenArray>()
     val items = ArrayList<Node>()
+
+    fun parseItem() {
+      parseNested(
+        block = { items += parseValue() },
+        failure = { failedNode ->
+          if (failedNode != null) items += failedNode
+          Array(items)
+        }
+      )
+    }
+
     var first = true
     while (true) {
       if (first) {
-        items += parseValue()
+        parseItem()
         first = false
       } else {
         when (val next = tokenizer.next()) {
-          Token.Comma -> items += parseValue()
+          Token.Comma -> parseItem()
           Token.CloseArray -> return Array(items)
-          else -> unexpectedToken(next)
+          else -> throwUnexpected(next, Array(items))
         }
       }
     }
@@ -62,22 +89,33 @@ class ProtoParser(text: String) {
   private fun parseObject(name: String): Node {
     expectNext<Token.OpenObject>()
     val fields = LinkedHashMap<String, Node>()
+
+    fun parseField(fieldName: String) {
+      parseNested(
+        block = { fields[fieldName] = parseField() },
+        failure = { failedNode ->
+          if (failedNode != null) fields[fieldName] = failedNode
+          Node.Object(name, fields)
+        }
+      )
+    }
+
     var first = true
     while (true) {
       when (val next = tokenizer.next()) {
         is Token.Symbol -> {
           check(first)
-          fields[next.value] = parseField()
+          parseField(next.value)
         }
         is Token.Comma -> {
           check(!first)
           val fieldName = expectNext<Token.Symbol>()
-          fields[fieldName.value] = parseField()
+          parseField(fieldName.value)
         }
         is Token.CloseObject -> {
           return Node.Object(name, fields)
         }
-        else -> unexpectedToken(next)
+        else -> throwUnexpected(next, Node.Object(name, fields))
       }
       first = false
     }

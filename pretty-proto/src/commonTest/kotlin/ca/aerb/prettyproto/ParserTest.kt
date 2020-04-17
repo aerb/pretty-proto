@@ -1,7 +1,10 @@
 package ca.aerb.prettyproto
 
 import ca.aerb.prettyproto.parser.Node
+import ca.aerb.prettyproto.parser.ParseResult
 import ca.aerb.prettyproto.parser.ProtoParser
+import ca.aerb.prettyproto.parser.ProtoTokenizer
+import ca.aerb.prettyproto.parser.UnexpectedToken
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -13,7 +16,7 @@ class ParserTest {
                 name = "A",
                 fields = emptyMap()
             ),
-            actual = ProtoParser("A{}").parseRoot()
+            actual = parseValid("A{}")
         )
     }
 
@@ -24,7 +27,7 @@ class ParserTest {
                 name = "A",
                 fields = mapOf("b" to Node.Single("wat"))
             ),
-            actual = ProtoParser("A{b=wat}").parseRoot()
+            actual = parseValid("A{b=wat}")
         )
     }
 
@@ -35,7 +38,7 @@ class ParserTest {
                 name = "A",
                 fields = mapOf("b" to Node.Single("wat"), "c" to Node.Single("test"))
             ),
-            actual = ProtoParser("A{b=wat, c=test}").parseRoot()
+            actual = parseValid("A{b=wat, c=test}")
         )
     }
 
@@ -51,7 +54,7 @@ class ParserTest {
                     )
                 )
             ),
-            actual = ProtoParser("A{b=B{c=c}}").parseRoot()
+            actual = parseValid("A{b=B{c=c}}")
         )
     }
 
@@ -62,7 +65,7 @@ class ParserTest {
                 name = "A",
                 fields = mapOf("b" to Node.Single(""",{}[]\"""))
             ),
-            actual = ProtoParser("""A{b=\,\{\}\[\]\\}""").parseRoot()
+            actual = parseValid("""A{b=\,\{\}\[\]\\}""")
         )
     }
 
@@ -78,8 +81,22 @@ class ParserTest {
                     )
                 )
             ),
-            actual = ProtoParser("NestedArray{my_list=[[a], [[b]]]}").parseRoot()
+            actual = parseValid("NestedArray{my_list=[[a], [[b]]]}")
         )
+    }
+
+    @Test
+    fun objectWithUnexpectedEnd() {
+        val error = parseInvalid("A{b=wa")
+
+        assertEquals(
+            expected = Node.Object(
+                name = "A",
+                fields = mapOf("b" to Node.Single("wa"))
+            ),
+            actual = error.innerFailed
+        )
+        assertEquals(expected = ProtoTokenizer.Token.EOF, actual = error.unexpected)
     }
 
     @Test
@@ -90,6 +107,11 @@ class ParserTest {
             "2019 Statement, key=2019110501, url=https://test.biz/login?token=:~), type=STONKS, " +
             "document_date=1572566400000, email_forwardable=false}]}").parseRoot()
     }
+
+    private fun parseValid(text: String): Node =
+        (ProtoParser(text).parseRoot() as ParseResult.Success).node
+    private fun parseInvalid(text: String): UnexpectedToken =
+        (ProtoParser(text).parseRoot() as ParseResult.Partial).error
 
     private fun nodeArrayOf(vararg node: Node) = Node.Array(listOf(*node))
 }

@@ -4,12 +4,13 @@ import ca.aerb.prettyproto.parser.ProtoTokenizer.FieldContent.UpcomingHint
 
 class ProtoTokenizer(private val text: String) {
 
-  private var index: Int = 0
+  var index: Int = 0
+    private set
 
   private fun peek(ahead: Int = 0): Char? {
     val i = index + ahead
     return if (i >= text.length) null
-    else text[index + ahead]
+    else text[i]
   }
 
   private fun advance(by: Int = 1) {
@@ -43,17 +44,9 @@ class ProtoTokenizer(private val text: String) {
           value = sb.toString().trim(),
           hint = UpcomingHint.ObjectStart
         )
-        ',' -> FieldContent(
+        ',', '}', ']', null -> FieldContent(
           value = sb.toString(),
-          hint = UpcomingHint.FieldEnd
-        )
-        '}' -> FieldContent(
-          value = sb.toString(),
-          hint = UpcomingHint.ObjectEnd
-        )
-        ']' -> FieldContent(
-          value = sb.toString(),
-          hint = UpcomingHint.ObjectEnd
+          hint = UpcomingHint.EndOfContent
         )
         else -> null
       }
@@ -98,10 +91,8 @@ class ProtoTokenizer(private val text: String) {
   data class FieldContent(val hint: UpcomingHint, val value: String = "") {
     enum class UpcomingHint {
       ObjectStart,
-      ObjectEnd,
       ArrayStart,
-      ArrayEnd,
-      FieldEnd
+      EndOfContent
     }
   }
 

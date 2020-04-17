@@ -1,6 +1,7 @@
 package ca.aerb.prettyproto.ui
 
 import ca.aerb.prettyproto.parser.Node
+import ca.aerb.prettyproto.parser.ParseResult
 import ca.aerb.prettyproto.parser.ProtoParser
 import kotlinx.html.InputType
 import kotlinx.html.js.onChangeFunction
@@ -15,14 +16,9 @@ import react.dom.div
 import react.dom.input
 import react.dom.span
 import react.setState
-import kotlin.browser.document
-import kotlin.browser.window
-
-external fun decodeURIComponent(encodedURI: String): String
-external fun encodeURIComponent(text: String): String
 
 interface RawTextInputProps : RProps {
-  var onParsed: (Node) -> Unit
+  var onParsed: (ParseResult) -> Unit
 }
 
 interface RawTextInputState : RState {
@@ -67,7 +63,7 @@ class RawTextInput(
   }
 }
 
-fun RBuilder.rawTextInput(onParsed: (Node) -> Unit): ReactElement =
+fun RBuilder.rawTextInput(onParsed: (ParseResult) -> Unit): ReactElement =
     child(RawTextInput::class) {
       attrs.onParsed = onParsed
     }
