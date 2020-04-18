@@ -11,8 +11,7 @@ class ProtoParser(private val text: String) {
 
   fun parseRoot(): ParseResult {
     return try {
-      val topLevel = expectNext<Token.Symbol>()
-      ParseResult.Success(parseObject(topLevel.value))
+      ParseResult.Success(parseValue())
     } catch (e: UnexpectedToken) {
       ParseResult.Partial(e)
     }
@@ -91,6 +90,7 @@ class ProtoParser(private val text: String) {
     val fields = LinkedHashMap<String, Node>()
 
     fun parseField(fieldName: String) {
+      check(fieldName !in fields) { "Field $fieldName already present." }
       parseNested(
         block = { fields[fieldName] = parseField() },
         failure = { failedNode ->

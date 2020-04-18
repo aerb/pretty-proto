@@ -54,7 +54,7 @@ class ProtoTokenizer(private val text: String) {
         return endOfField
       }
 
-      if (curr == '\\' && peek(1) in EscapedCharacter) {
+      if (curr == '\\' && peek(1) in EscapedCharacters) {
         sb.append(peek(1))
         advance(by = 2)
       } else {
@@ -67,7 +67,7 @@ class ProtoTokenizer(private val text: String) {
   fun next(): Token {
     var curr: Char
     while (true) {
-      curr = peek() ?: return Token.EOF
+      curr = peek() ?: return Token.ETX
       if (!curr.isWhitespace()) break
       else advance()
     }
@@ -98,19 +98,19 @@ class ProtoTokenizer(private val text: String) {
 
   sealed class Token(private val debugText: String? = null) {
     data class Symbol(val value: String) : Token()
-    object OpenObject : Token("OpenObject")
-    object CloseObject : Token("CloseObject")
-    object Assign : Token("Assign")
-    object Comma: Token("Comma")
-    object EOF: Token("EOF")
-    object OpenArray : Token("OpenArray")
-    object CloseArray : Token("CloseArray")
+    object OpenObject : Token("{")
+    object CloseObject : Token("}")
+    object Assign : Token("=")
+    object Comma: Token(",")
+    object ETX: Token("ETX")
+    object OpenArray : Token("[")
+    object CloseArray : Token("]")
 
     override fun toString(): String = debugText ?: super.toString()
   }
 }
 
-private val EscapedCharacter = setOf(',', '{', '}', '[', ']', '\\')
+private val EscapedCharacters = setOf(',', '{', '}', '[', ']', '\\')
 
 private fun Char?.isSymbolChar(): Boolean =
     this in 'a'..'z' || this in 'A'..'Z' || this in '0'..'9' || this == '_'

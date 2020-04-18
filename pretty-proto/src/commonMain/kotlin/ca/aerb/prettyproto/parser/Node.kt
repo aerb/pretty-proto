@@ -8,15 +8,15 @@ sealed class Node {
   fun toPrettyString(): String = toPrettyString(this, 0)
 }
 
-private fun toPrettyString(node: Node, depth: Int): String {
-  fun indentOf(spaces: Int): String = " ".repeat(spaces)
+fun indent(spaces: Int): String = " ".repeat(spaces)
 
+private fun toPrettyString(node: Node, depth: Int): String {
   return when (node) {
     is Node.Object -> {
       buildString {
         append(node.name).append("{\n")
         val nextDepth = depth + 2
-        val childIndent = indentOf(nextDepth)
+        val childIndent = indent(nextDepth)
         val lastIndex = node.fields.size - 1
         node.fields.toList().forEachIndexed { index, (name, value) ->
           append(childIndent).append(name).append("=").append(
@@ -28,7 +28,7 @@ private fun toPrettyString(node: Node, depth: Int): String {
             append(",\n")
           }
         }
-        append(indentOf(depth)).append("}")
+        append(indent(depth)).append("}")
       }
     }
     is Node.Single -> node.value
@@ -36,7 +36,7 @@ private fun toPrettyString(node: Node, depth: Int): String {
       buildString {
         append("[\n")
         val nextDepth = depth + 2
-        val childIndent = indentOf(nextDepth)
+        val childIndent = indent(nextDepth)
         val lastIndex = node.items.size - 1
         node.items.forEachIndexed { index, child ->
           append(childIndent).append(toPrettyString(child, nextDepth))
@@ -46,7 +46,7 @@ private fun toPrettyString(node: Node, depth: Int): String {
             append(",\n")
           }
         }
-        append(indentOf(depth)).append("]")
+        append(indent(depth)).append("]")
       }
     }
   }

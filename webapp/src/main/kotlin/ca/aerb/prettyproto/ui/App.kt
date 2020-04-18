@@ -1,6 +1,8 @@
 package ca.aerb.prettyproto.ui
 
 import ca.aerb.prettyproto.parser.ParseResult
+import ca.aerb.prettyproto.parser.ProtoTokenizer.Token
+import ca.aerb.prettyproto.parser.indent
 import react.RBuilder
 import react.RComponent
 import react.RProps
@@ -43,12 +45,18 @@ class App : RComponent<RProps, AppState>() {
               is ParseResult.Success -> +it.node.toPrettyString()
               is ParseResult.Partial -> {
                 val parseContext = it.error.parseContext
-                +"Unexpected token ${it.error.unexpected} at index ${parseContext.absoluteIndex}\n"
-                +"Near: ${parseContext.text}\n"
-                +"      ${" ".repeat((parseContext.localIndex - 1).coerceAtLeast(0))}^\n"
+                if (it.error.unexpected is Token.ETX) {
+                  +"Unexpected end of string at position ${parseContext.absoluteIndex}\n"
+                  +"Near: ${parseContext.text}\n"
+                  +"      ${indent(parseContext.text.length)}^\n"
+                } else {
+                  +"Unexpected token ${it.error.unexpected} at position ${parseContext.absoluteIndex}\n"
+                  +"Near: ${parseContext.text}\n"
+                  +"      ${indent((parseContext.localIndex - 1).coerceAtLeast(0))}^\n"
+                }
 
                 it.error.innerFailed?.let {
-                  +"\nBest Attempt:\n\n"
+                  +"\nBest Effort:\n\n"
                   +it.toPrettyString()
                 }
               }
