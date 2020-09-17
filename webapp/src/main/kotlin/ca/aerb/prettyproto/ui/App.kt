@@ -3,21 +3,26 @@ package ca.aerb.prettyproto.ui
 import ca.aerb.prettyproto.parser.ParseResult
 import ca.aerb.prettyproto.parser.ProtoTokenizer.Token
 import ca.aerb.prettyproto.parser.indent
+import kotlinx.css.UserSelect
+import kotlinx.css.userSelect
 import react.RBuilder
 import react.RComponent
 import react.RProps
 import react.RState
 import react.dom.a
 import react.dom.br
-import react.dom.code
 import react.dom.div
 import react.dom.h1
 import react.dom.pre
 import react.setState
+import styled.css
+import styled.styledCode
 
 interface AppState : RState {
   var node: ParseResult?
 }
+
+
 
 class App : RComponent<RProps, AppState>() {
 
@@ -40,8 +45,9 @@ class App : RComponent<RProps, AppState>() {
       br {  }
       state.node?.let {
         pre("rounded-lg bg-light pt-3 pb-3 pl-3 pr-3") {
-          code {
-             when(it) {
+          styledCode {
+            css { userSelect = UserSelect.all }
+            when (it) {
               is ParseResult.Success -> +it.node.toPrettyString()
               is ParseResult.Partial -> {
                 val parseContext = it.error.parseContext
